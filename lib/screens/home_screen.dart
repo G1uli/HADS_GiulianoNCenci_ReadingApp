@@ -24,9 +24,10 @@ class _HomeScreenState extends State<HomeScreen> {
     'https://mangadex.org',
     'https://www.webnovel.com',
     'https://www.royalroad.com',
+    'https://openlibrary.org',
   ];
 
-  String _selectedUrl = 'https://mangadex.org';
+  String _selectedUrl = 'https://openlibrary.org';
   late final WebViewController _webViewController;
   bool _isLoading = true;
 
@@ -174,7 +175,9 @@ class _HomeScreenState extends State<HomeScreen> {
           IconButton(
             icon: Icon(
               Icons.favorite,
-              color: _getTextColorForBackground(_settingsService.backgroundColor),
+              color: _getTextColorForBackground(
+                _settingsService.backgroundColor,
+              ),
             ),
             onPressed: _saveCurrentSessionAsFavorite,
             tooltip: 'Save Current Session',
@@ -183,7 +186,9 @@ class _HomeScreenState extends State<HomeScreen> {
           IconButton(
             icon: Icon(
               Icons.picture_as_pdf,
-              color: _getTextColorForBackground(_settingsService.backgroundColor),
+              color: _getTextColorForBackground(
+                _settingsService.backgroundColor,
+              ),
             ),
             onPressed: () {
               Navigator.push(
@@ -199,7 +204,9 @@ class _HomeScreenState extends State<HomeScreen> {
           IconButton(
             icon: Icon(
               Icons.settings,
-              color: _getTextColorForBackground(_settingsService.backgroundColor),
+              color: _getTextColorForBackground(
+                _settingsService.backgroundColor,
+              ),
             ),
             onPressed: () {
               Navigator.push(
@@ -217,7 +224,9 @@ class _HomeScreenState extends State<HomeScreen> {
           IconButton(
             icon: Icon(
               Icons.exit_to_app,
-              color: _getTextColorForBackground(_settingsService.backgroundColor),
+              color: _getTextColorForBackground(
+                _settingsService.backgroundColor,
+              ),
             ),
             onPressed: () async {
               await _authService.logout();
@@ -237,24 +246,30 @@ class _HomeScreenState extends State<HomeScreen> {
                 color: _settingsService.sidebarColor.withOpacity(0.8),
               ),
               child: Text(
-                'Reading Sites', 
+                'Reading Sites',
                 style: TextStyle(
-                  color: _getTextColorForBackground(_settingsService.sidebarColor),
+                  color: _getTextColorForBackground(
+                    _settingsService.sidebarColor,
+                  ),
                   fontSize: 24,
                 ),
               ),
             ),
-            
+
             // History Button
             ListTile(
               leading: Icon(
                 Icons.history,
-                color: _getTextColorForBackground(_settingsService.sidebarColor),
+                color: _getTextColorForBackground(
+                  _settingsService.sidebarColor,
+                ),
               ),
               title: Text(
                 'Reading History',
                 style: TextStyle(
-                  color: _getTextColorForBackground(_settingsService.sidebarColor),
+                  color: _getTextColorForBackground(
+                    _settingsService.sidebarColor,
+                  ),
                 ),
               ),
               onTap: () {
@@ -276,7 +291,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 title: Text(
                   Uri.parse(url).host,
                   style: TextStyle(
-                    color: _getTextColorForBackground(_settingsService.sidebarColor),
+                    color: _getTextColorForBackground(
+                      _settingsService.sidebarColor,
+                    ),
                   ),
                 ),
                 onTap: () {
@@ -293,12 +310,16 @@ class _HomeScreenState extends State<HomeScreen> {
             ListTile(
               leading: Icon(
                 Icons.picture_as_pdf,
-                color: _getTextColorForBackground(_settingsService.sidebarColor),
+                color: _getTextColorForBackground(
+                  _settingsService.sidebarColor,
+                ),
               ),
               title: Text(
                 'PDF to Text Converter',
                 style: TextStyle(
-                  color: _getTextColorForBackground(_settingsService.sidebarColor),
+                  color: _getTextColorForBackground(
+                    _settingsService.sidebarColor,
+                  ),
                 ),
               ),
               onTap: () {
@@ -316,12 +337,16 @@ class _HomeScreenState extends State<HomeScreen> {
             ListTile(
               leading: Icon(
                 Icons.people,
-                color: _getTextColorForBackground(_settingsService.sidebarColor),
+                color: _getTextColorForBackground(
+                  _settingsService.sidebarColor,
+                ),
               ),
               title: Text(
                 'Registered Accounts',
                 style: TextStyle(
-                  color: _getTextColorForBackground(_settingsService.sidebarColor),
+                  color: _getTextColorForBackground(
+                    _settingsService.sidebarColor,
+                  ),
                 ),
               ),
               onTap: () {
@@ -339,12 +364,16 @@ class _HomeScreenState extends State<HomeScreen> {
             ListTile(
               leading: Icon(
                 Icons.settings,
-                color: _getTextColorForBackground(_settingsService.sidebarColor),
+                color: _getTextColorForBackground(
+                  _settingsService.sidebarColor,
+                ),
               ),
               title: Text(
                 'Settings',
                 style: TextStyle(
-                  color: _getTextColorForBackground(_settingsService.sidebarColor),
+                  color: _getTextColorForBackground(
+                    _settingsService.sidebarColor,
+                  ),
                 ),
               ),
               onTap: () {

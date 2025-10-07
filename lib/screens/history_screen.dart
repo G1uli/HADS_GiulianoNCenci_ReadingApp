@@ -201,7 +201,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
     String displayUrl = session.url;
 
     return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 2),
+      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
       child: ListTile(
         leading: Icon(
           session.isFavorite ? Icons.star : Icons.history,

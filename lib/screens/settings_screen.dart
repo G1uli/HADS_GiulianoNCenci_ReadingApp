@@ -14,7 +14,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final SettingsService _settingsService = SettingsService();
   late Color _selectedBackgroundColor;
   late Color _selectedSidebarColor;
-  late double _fontScale;
 
   // Predefined color options
   final List<Color> _colorOptions = [
@@ -48,7 +47,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     super.initState();
     _selectedBackgroundColor = _settingsService.backgroundColor;
     _selectedSidebarColor = _settingsService.sidebarColor;
-    _fontScale = _settingsService.fontScale;
   }
 
   // Helper method to determine text color based on background brightness
@@ -58,7 +56,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         : Colors.white;
   }
 
-  // Helper method to compare colors without using deprecated .value
+  // Helper method to compare colors without using deprecated value
   bool _colorsAreEqual(Color color1, Color color2) {
     return color1.red == color2.red &&
         color1.green == color2.green &&
@@ -127,7 +125,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           _settingsService.saveBackgroundColor(
                             _colorOptions[index],
                           );
-                          // Refresh the screen to update colors immediately
                           if (mounted) {
                             setState(() {});
                           }
@@ -203,75 +200,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ),
             const SizedBox(height: 20),
-
-            // Font Size Scaling
-            Text(
-              'Text Size',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: _getTextColorForBackground(
-                  _settingsService.backgroundColor,
-                ),
-              ),
-            ),
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                Text(
-                  'Small',
-                  style: TextStyle(
-                    color: _getTextColorForBackground(
-                      _settingsService.backgroundColor,
-                    ),
-                  ),
-                ),
-                Expanded(
-                  child: Slider(
-                    value: _fontScale,
-                    min: 0.8,
-                    max: 1.5,
-                    divisions: 7,
-                    label: _fontScale.toStringAsFixed(1),
-                    onChanged: (value) {
-                      setState(() {
-                        _fontScale = value;
-                      });
-                      _settingsService.saveFontScale(value);
-                    },
-                  ),
-                ),
-                Text(
-                  'Large',
-                  style: TextStyle(
-                    color: _getTextColorForBackground(
-                      _settingsService.backgroundColor,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            Text(
-              'Preview Text - Current scale: ${_fontScale.toStringAsFixed(1)}',
-              style: TextStyle(
-                fontSize: 16 * _fontScale,
-                color: _getTextColorForBackground(
-                  _settingsService.backgroundColor,
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-
             // Reset to Defaults
             ElevatedButton(
               onPressed: () {
                 setState(() {
                   _selectedBackgroundColor = Colors.white;
-                  _selectedSidebarColor = Colors.blue;
-                  _fontScale = 1.0;
+                  _selectedSidebarColor = Colors.white;
                 });
                 _settingsService.resetToDefaults();
-                // Refresh to show changes immediately
                 if (mounted) {
                   setState(() {});
                 }
