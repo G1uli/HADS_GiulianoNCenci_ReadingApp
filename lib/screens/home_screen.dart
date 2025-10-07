@@ -170,13 +170,11 @@ class _HomeScreenState extends State<HomeScreen> {
           color: _getTextColorForBackground(_settingsService.backgroundColor),
         ),
         actions: [
-          // Save Current Session button - MOVED TO THE LEFT
+          // Save Current Session button
           IconButton(
             icon: Icon(
               Icons.favorite,
-              color: _getTextColorForBackground(
-                _settingsService.backgroundColor,
-              ),
+              color: _getTextColorForBackground(_settingsService.backgroundColor),
             ),
             onPressed: _saveCurrentSessionAsFavorite,
             tooltip: 'Save Current Session',
@@ -185,9 +183,7 @@ class _HomeScreenState extends State<HomeScreen> {
           IconButton(
             icon: Icon(
               Icons.picture_as_pdf,
-              color: _getTextColorForBackground(
-                _settingsService.backgroundColor,
-              ),
+              color: _getTextColorForBackground(_settingsService.backgroundColor),
             ),
             onPressed: () {
               Navigator.push(
@@ -203,9 +199,7 @@ class _HomeScreenState extends State<HomeScreen> {
           IconButton(
             icon: Icon(
               Icons.settings,
-              color: _getTextColorForBackground(
-                _settingsService.backgroundColor,
-              ),
+              color: _getTextColorForBackground(_settingsService.backgroundColor),
             ),
             onPressed: () {
               Navigator.push(
@@ -223,9 +217,7 @@ class _HomeScreenState extends State<HomeScreen> {
           IconButton(
             icon: Icon(
               Icons.exit_to_app,
-              color: _getTextColorForBackground(
-                _settingsService.backgroundColor,
-              ),
+              color: _getTextColorForBackground(_settingsService.backgroundColor),
             ),
             onPressed: () async {
               await _authService.logout();
@@ -239,22 +231,30 @@ class _HomeScreenState extends State<HomeScreen> {
         backgroundColor: _settingsService.sidebarColor,
         child: ListView(
           children: [
-            // ... existing header and other items ...
-
+            DrawerHeader(
+              decoration: BoxDecoration(
+                // ignore: deprecated_member_use
+                color: _settingsService.sidebarColor.withOpacity(0.8),
+              ),
+              child: Text(
+                'Reading Sites', 
+                style: TextStyle(
+                  color: _getTextColorForBackground(_settingsService.sidebarColor),
+                  fontSize: 24,
+                ),
+              ),
+            ),
+            
             // History Button
             ListTile(
               leading: Icon(
                 Icons.history,
-                color: _getTextColorForBackground(
-                  _settingsService.sidebarColor,
-                ),
+                color: _getTextColorForBackground(_settingsService.sidebarColor),
               ),
               title: Text(
                 'Reading History',
                 style: TextStyle(
-                  color: _getTextColorForBackground(
-                    _settingsService.sidebarColor,
-                  ),
+                  color: _getTextColorForBackground(_settingsService.sidebarColor),
                 ),
               ),
               onTap: () {
@@ -276,9 +276,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 title: Text(
                   Uri.parse(url).host,
                   style: TextStyle(
-                    color: _getTextColorForBackground(
-                      _settingsService.sidebarColor,
-                    ),
+                    color: _getTextColorForBackground(_settingsService.sidebarColor),
                   ),
                 ),
                 onTap: () {
@@ -295,16 +293,12 @@ class _HomeScreenState extends State<HomeScreen> {
             ListTile(
               leading: Icon(
                 Icons.picture_as_pdf,
-                color: _getTextColorForBackground(
-                  _settingsService.sidebarColor,
-                ),
+                color: _getTextColorForBackground(_settingsService.sidebarColor),
               ),
               title: Text(
                 'PDF to Text Converter',
                 style: TextStyle(
-                  color: _getTextColorForBackground(
-                    _settingsService.sidebarColor,
-                  ),
+                  color: _getTextColorForBackground(_settingsService.sidebarColor),
                 ),
               ),
               onTap: () {
@@ -322,16 +316,12 @@ class _HomeScreenState extends State<HomeScreen> {
             ListTile(
               leading: Icon(
                 Icons.people,
-                color: _getTextColorForBackground(
-                  _settingsService.sidebarColor,
-                ),
+                color: _getTextColorForBackground(_settingsService.sidebarColor),
               ),
               title: Text(
                 'Registered Accounts',
                 style: TextStyle(
-                  color: _getTextColorForBackground(
-                    _settingsService.sidebarColor,
-                  ),
+                  color: _getTextColorForBackground(_settingsService.sidebarColor),
                 ),
               ),
               onTap: () {
@@ -349,16 +339,12 @@ class _HomeScreenState extends State<HomeScreen> {
             ListTile(
               leading: Icon(
                 Icons.settings,
-                color: _getTextColorForBackground(
-                  _settingsService.sidebarColor,
-                ),
+                color: _getTextColorForBackground(_settingsService.sidebarColor),
               ),
               title: Text(
                 'Settings',
                 style: TextStyle(
-                  color: _getTextColorForBackground(
-                    _settingsService.sidebarColor,
-                  ),
+                  color: _getTextColorForBackground(_settingsService.sidebarColor),
                 ),
               ),
               onTap: () {

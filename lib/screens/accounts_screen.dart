@@ -22,7 +22,7 @@ class _AccountsScreenState extends State<AccountsScreen> {
   Future<void> _loadAccounts() async {
     final accounts = await _authService.getAllAccounts();
     final currentEmail = await _authService.getEmail();
-
+    
     if (mounted) {
       setState(() {
         _accounts = accounts;
@@ -37,9 +37,9 @@ class _AccountsScreenState extends State<AccountsScreen> {
       setState(() {
         _currentEmail = account.email;
       });
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Switched to ${account.email}')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Switched to ${account.email}')),
+      );
     }
   }
 
@@ -50,7 +50,9 @@ class _AccountsScreenState extends State<AccountsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Registered Accounts')),
+      appBar: AppBar(
+        title: const Text('Registered Accounts'),
+      ),
       body: _accounts.isEmpty
           ? const Center(
               child: Column(
@@ -70,29 +72,22 @@ class _AccountsScreenState extends State<AccountsScreen> {
               itemBuilder: (context, index) {
                 final account = _accounts[index];
                 final isCurrent = account.email == _currentEmail;
-
+                
                 return Card(
-                  margin: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
-                  ),
+                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   color: isCurrent ? Colors.blue[50] : null,
                   child: ListTile(
                     leading: CircleAvatar(
                       backgroundColor: isCurrent ? Colors.blue : Colors.grey,
                       child: Text(
-                        account.name.isNotEmpty
-                            ? account.name[0].toUpperCase()
-                            : 'U',
+                        account.name.isNotEmpty ? account.name[0].toUpperCase() : 'U',
                         style: const TextStyle(color: Colors.white),
                       ),
                     ),
                     title: Text(
                       account.name,
                       style: TextStyle(
-                        fontWeight: isCurrent
-                            ? FontWeight.bold
-                            : FontWeight.normal,
+                        fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
                       ),
                     ),
                     subtitle: Column(

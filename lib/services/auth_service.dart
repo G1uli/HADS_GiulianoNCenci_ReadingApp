@@ -37,25 +37,20 @@ class AuthService {
   factory AuthService() => _instance;
   AuthService._internal();
 
-  Future<bool> register(
-    String email,
-    String password,
-    String name,
-    DateTime birthDate,
-  ) async {
+  Future<bool> register(String email, String password, String name, DateTime birthDate) async {
     if (!email.endsWith('@gmail.com')) {
       return false; // RNF04: Only Gmail accounts allowed
     }
-
+    
     final prefs = await SharedPreferences.getInstance();
-
+    
     // Store account credentials
     await prefs.setString('current_email', email);
     await prefs.setString('current_password', password);
     await prefs.setString('current_name', name);
     await prefs.setString('current_birthDate', birthDate.toIso8601String());
     await prefs.setBool('isLoggedIn', true);
-
+    
     // Add to accounts list
     final accountsJson = prefs.getStringList('user_accounts') ?? [];
     final newAccount = UserAccount(
@@ -64,7 +59,7 @@ class AuthService {
       birthDate: birthDate,
       registrationDate: DateTime.now(),
     );
-
+    
     // Check if account already exists
     if (!accountsJson.any((accountJson) {
       final account = UserAccount.fromMap(_jsonDecode(accountJson));
@@ -73,7 +68,7 @@ class AuthService {
       accountsJson.add(_jsonEncode(newAccount.toMap()));
       await prefs.setStringList('user_accounts', accountsJson);
     }
-
+    
     return true;
   }
 
@@ -81,12 +76,12 @@ class AuthService {
     final prefs = await SharedPreferences.getInstance();
     final storedEmail = prefs.getString('current_email');
     final storedPassword = prefs.getString('current_password');
-
+    
     if (email == storedEmail && password == storedPassword) {
       await prefs.setBool('isLoggedIn', true);
       return true;
     }
-
+    
     return false;
   }
 
@@ -114,7 +109,7 @@ class AuthService {
   Future<List<UserAccount>> getAllAccounts() async {
     final prefs = await SharedPreferences.getInstance();
     final accountsJson = prefs.getStringList('user_accounts') ?? [];
-
+    
     return accountsJson.map((json) {
       return UserAccount.fromMap(_jsonDecode(json));
     }).toList();
@@ -124,22 +119,19 @@ class AuthService {
   Future<bool> switchAccount(String email) async {
     final prefs = await SharedPreferences.getInstance();
     final accountsJson = prefs.getStringList('user_accounts') ?? [];
-
+    
     for (final accountJson in accountsJson) {
       final account = UserAccount.fromMap(_jsonDecode(accountJson));
       if (account.email == email) {
         // Update current account info
         await prefs.setString('current_email', account.email);
         await prefs.setString('current_name', account.name);
-        await prefs.setString(
-          'current_birthDate',
-          account.birthDate.toIso8601String(),
-        );
+        await prefs.setString('current_birthDate', account.birthDate.toIso8601String());
         await prefs.setBool('isLoggedIn', true);
         return true;
       }
     }
-
+    
     return false;
   }
 
@@ -147,33 +139,28 @@ class AuthService {
   Map<String, dynamic> _jsonDecode(String jsonString) {
     // Simple JSON decoding for our map structure
     final Map<String, dynamic> result = {};
-    final pairs = jsonString
-        .replaceAll('{', '')
-        .replaceAll('}', '')
-        .split(', ');
-
+    final pairs = jsonString.replaceAll('{', '').replaceAll('}', '').split(', ');
+    
     for (final pair in pairs) {
       final keyValue = pair.split(': ');
       if (keyValue.length == 2) {
         final key = keyValue[0].trim();
         final value = keyValue[1].trim();
-
+        
         // Remove quotes from key and value
         final cleanKey = key.replaceAll('"', '');
         final cleanValue = value.replaceAll('"', '');
-
+        
         result[cleanKey] = cleanValue;
       }
     }
-
+    
     return result;
   }
 
   String _jsonEncode(Map<String, dynamic> map) {
     // Simple JSON encoding for our map structure
-    final entries = map.entries.map(
-      (entry) => '"${entry.key}": "${entry.value}"',
-    );
+    final entries = map.entries.map((entry) => '"${entry.key}": "${entry.value}"');
     return '{${entries.join(', ')}}';
   }
 }
