@@ -20,14 +20,15 @@ class _HomeScreenState extends State<HomeScreen> {
   final AuthService _authService = AuthService();
   final SettingsService _settingsService = SettingsService();
   final DatabaseService _databaseService = DatabaseService();
+  
+  // Start with predefined sites, but make it mutable
   final List<String> _readingSites = [
     'https://mangadex.org',
     'https://www.webnovel.com',
     'https://www.royalroad.com',
-    'https://openlibrary.org',
   ];
 
-  String _selectedUrl = 'https://openlibrary.org';
+  String _selectedUrl = 'https://mangadex.org';
   late final WebViewController _webViewController;
   bool _isLoading = true;
 
@@ -60,10 +61,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _autoSaveReadingSession(String url) async {
-    // Check if this URL is already saved
     final existingSession = await _databaseService.getSessionByUrl(url);
     if (existingSession == null) {
-      // Auto-save with page title as the title
       final session = ReadingHistory(
         url: url,
         title: _getPageTitleFromUrl(url),
@@ -77,7 +76,6 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       final uri = Uri.parse(url);
       final host = uri.host;
-      // Create a readable title from the URL
       return host
           .replaceAll('www.', '')
           .replaceAll('.com', '')
@@ -144,6 +142,146 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  // Add new website dialog
+  Future<void> _showAddWebsiteDialog() async {
+    TextEditingController urlController = TextEditingController();
+    TextEditingController nameController = TextEditingController();
+
+    return showDialog<void>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Add New Website'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                decoration: const InputDecoration(
+                  labelText: 'Website Name (Optional)',
+                  hintText: 'e.g., My Favorite Site',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: urlController,
+                decoration: const InputDecoration(
+                  labelText: 'Website URL',
+                  hintText: 'https://example.com',
+                  border: OutlineInputBorder(),
+                ),
+                keyboardType: TextInputType.url,
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Enter a valid URL starting with http:// or https://',
+                style: TextStyle(fontSize: 12, color: Colors.grey),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                final url = urlController.text.trim();
+                if (_isValidUrl(url)) {
+                  _addNewWebsite(url, nameController.text.trim());
+                  Navigator.pop(context);
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Please enter a valid URL starting with http:// or https://'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              },
+              child: const Text('Add Website'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  bool _isValidUrl(String url) {
+    try {
+      final uri = Uri.parse(url);
+      return uri.hasScheme && (uri.scheme == 'http' || uri.scheme == 'https');
+    } catch (e) {
+      return false;
+    }
+  }
+
+  void _addNewWebsite(String url, String name) {
+    // Ensure URL has proper format
+    String formattedUrl = url;
+    if (!formattedUrl.startsWith('http://') && !formattedUrl.startsWith('https://')) {
+      formattedUrl = 'https://$formattedUrl';
+    }
+
+    setState(() {
+      _readingSites.add(formattedUrl);
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Website ${name.isNotEmpty ? '"$name" ' : ''}added successfully!'),
+        backgroundColor: Colors.green,
+      ),
+    );
+  }
+
+  void _removeWebsite(String url) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Remove Website'),
+          content: Text('Are you sure you want to remove ${Uri.parse(url).host}?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                setState(() {
+                  _readingSites.remove(url);
+                });
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Website removed')),
+                );
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              child: const Text('Remove'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  String _getWebsiteDisplayName(String url) {
+    try {
+      final uri = Uri.parse(url);
+      return uri.host.replaceAll('www.', '');
+    } catch (e) {
+      return url;
+    }
+  }
+
+  // Helper method to handle opacity without deprecated method
+  Color _withOpacity(Color color, double opacity) {
+    // ignore: deprecated_member_use
+    return color.withOpacity(opacity);
+  }
+
   void _safeNavigateAfterLogout() {
     if (mounted) {
       Navigator.of(context).pushReplacementNamed('/');
@@ -171,24 +309,18 @@ class _HomeScreenState extends State<HomeScreen> {
           color: _getTextColorForBackground(_settingsService.backgroundColor),
         ),
         actions: [
-          // Save Current Session button
           IconButton(
             icon: Icon(
               Icons.favorite,
-              color: _getTextColorForBackground(
-                _settingsService.backgroundColor,
-              ),
+              color: _getTextColorForBackground(_settingsService.backgroundColor),
             ),
             onPressed: _saveCurrentSessionAsFavorite,
             tooltip: 'Save Current Session',
           ),
-          // PDF Converter button
           IconButton(
             icon: Icon(
               Icons.picture_as_pdf,
-              color: _getTextColorForBackground(
-                _settingsService.backgroundColor,
-              ),
+              color: _getTextColorForBackground(_settingsService.backgroundColor),
             ),
             onPressed: () {
               Navigator.push(
@@ -200,13 +332,10 @@ class _HomeScreenState extends State<HomeScreen> {
             },
             tooltip: 'PDF to Text Converter',
           ),
-          // Settings button
           IconButton(
             icon: Icon(
               Icons.settings,
-              color: _getTextColorForBackground(
-                _settingsService.backgroundColor,
-              ),
+              color: _getTextColorForBackground(_settingsService.backgroundColor),
             ),
             onPressed: () {
               Navigator.push(
@@ -220,13 +349,10 @@ class _HomeScreenState extends State<HomeScreen> {
             },
             tooltip: 'Settings',
           ),
-          // Logout button
           IconButton(
             icon: Icon(
               Icons.exit_to_app,
-              color: _getTextColorForBackground(
-                _settingsService.backgroundColor,
-              ),
+              color: _getTextColorForBackground(_settingsService.backgroundColor),
             ),
             onPressed: () async {
               await _authService.logout();
@@ -242,34 +368,27 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             DrawerHeader(
               decoration: BoxDecoration(
-                // ignore: deprecated_member_use
-                color: _settingsService.sidebarColor.withOpacity(0.8),
+                color: _withOpacity(_settingsService.sidebarColor, 0.8),
               ),
               child: Text(
-                'Reading Sites',
+                'Reading Sites', 
                 style: TextStyle(
-                  color: _getTextColorForBackground(
-                    _settingsService.sidebarColor,
-                  ),
+                  color: _getTextColorForBackground(_settingsService.sidebarColor),
                   fontSize: 24,
                 ),
               ),
             ),
-
+            
             // History Button
             ListTile(
               leading: Icon(
                 Icons.history,
-                color: _getTextColorForBackground(
-                  _settingsService.sidebarColor,
-                ),
+                color: _getTextColorForBackground(_settingsService.sidebarColor),
               ),
               title: Text(
                 'Reading History',
                 style: TextStyle(
-                  color: _getTextColorForBackground(
-                    _settingsService.sidebarColor,
-                  ),
+                  color: _getTextColorForBackground(_settingsService.sidebarColor),
                 ),
               ),
               onTap: () {
@@ -285,22 +404,48 @@ class _HomeScreenState extends State<HomeScreen> {
 
             const Divider(),
 
+            // Add Website Button
+            ListTile(
+              leading: Icon(
+                Icons.add_link,
+                color: _getTextColorForBackground(_settingsService.sidebarColor),
+              ),
+              title: Text(
+                'Add New Website',
+                style: TextStyle(
+                  color: _getTextColorForBackground(_settingsService.sidebarColor),
+                ),
+              ),
+              onTap: () {
+                Navigator.pop(context);
+                _showAddWebsiteDialog();
+              },
+            ),
+
             // Reading Sites
             ..._readingSites.map(
               (url) => ListTile(
                 title: Text(
-                  Uri.parse(url).host,
+                  _getWebsiteDisplayName(url),
                   style: TextStyle(
-                    color: _getTextColorForBackground(
-                      _settingsService.sidebarColor,
-                    ),
+                    color: _getTextColorForBackground(_settingsService.sidebarColor),
                   ),
+                ),
+                trailing: IconButton(
+                  icon: Icon(
+                    Icons.remove_circle_outline,
+                    color: _withOpacity(_getTextColorForBackground(_settingsService.sidebarColor), 0.7),
+                    size: 20,
+                  ),
+                  onPressed: () => _removeWebsite(url),
+                  tooltip: 'Remove website',
                 ),
                 onTap: () {
                   setState(() => _selectedUrl = url);
                   _webViewController.loadRequest(Uri.parse(url));
                   Navigator.pop(context);
                 },
+                onLongPress: () => _removeWebsite(url),
               ),
             ),
 
@@ -310,16 +455,12 @@ class _HomeScreenState extends State<HomeScreen> {
             ListTile(
               leading: Icon(
                 Icons.picture_as_pdf,
-                color: _getTextColorForBackground(
-                  _settingsService.sidebarColor,
-                ),
+                color: _getTextColorForBackground(_settingsService.sidebarColor),
               ),
               title: Text(
                 'PDF to Text Converter',
                 style: TextStyle(
-                  color: _getTextColorForBackground(
-                    _settingsService.sidebarColor,
-                  ),
+                  color: _getTextColorForBackground(_settingsService.sidebarColor),
                 ),
               ),
               onTap: () {
@@ -337,16 +478,12 @@ class _HomeScreenState extends State<HomeScreen> {
             ListTile(
               leading: Icon(
                 Icons.people,
-                color: _getTextColorForBackground(
-                  _settingsService.sidebarColor,
-                ),
+                color: _getTextColorForBackground(_settingsService.sidebarColor),
               ),
               title: Text(
                 'Registered Accounts',
                 style: TextStyle(
-                  color: _getTextColorForBackground(
-                    _settingsService.sidebarColor,
-                  ),
+                  color: _getTextColorForBackground(_settingsService.sidebarColor),
                 ),
               ),
               onTap: () {
@@ -364,16 +501,12 @@ class _HomeScreenState extends State<HomeScreen> {
             ListTile(
               leading: Icon(
                 Icons.settings,
-                color: _getTextColorForBackground(
-                  _settingsService.sidebarColor,
-                ),
+                color: _getTextColorForBackground(_settingsService.sidebarColor),
               ),
               title: Text(
                 'Settings',
                 style: TextStyle(
-                  color: _getTextColorForBackground(
-                    _settingsService.sidebarColor,
-                  ),
+                  color: _getTextColorForBackground(_settingsService.sidebarColor),
                 ),
               ),
               onTap: () {
@@ -384,9 +517,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     builder: (context) => const SettingsScreen(),
                   ),
                 ).then((_) {
-                  if (mounted) {
                     setState(() {});
-                  }
                 });
               },
             ),

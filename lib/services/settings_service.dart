@@ -107,3 +107,24 @@ class SettingsService {
     }
   }
 }
+
+Future<void> saveCustomSites(List<String> sites) async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList('custom_sites', sites);
+  } catch (e) {
+    // ignore: avoid_print
+    print('Error saving custom sites: $e');
+  }
+}
+
+Future<List<String>> getCustomSites() async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getStringList('custom_sites') ?? [];
+  } catch (e) {
+    // ignore: avoid_print
+    print('Error loading custom sites: $e');
+    return [];
+  }
+}
