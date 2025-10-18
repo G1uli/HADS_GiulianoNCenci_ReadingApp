@@ -32,45 +32,21 @@ class _HomeScreenState extends State<HomeScreen> {
   List<String> _readingSites = [];
   List<String> _customSites = [];
 
-  String _selectedUrl = 'https://www.royalroad.com';
-  late final WebViewController _webViewController;
-  bool _isLoading = true;
-
   @override
   void initState() {
     super.initState();
     _loadCustomSites();
-    _webViewController = WebViewController()
-      ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..setNavigationDelegate(
-        NavigationDelegate(
-          onPageStarted: (String url) {
-            if (mounted) {
-              setState(() {
-                _isLoading = true;
-              });
-            }
-          },
-          onPageFinished: (String url) {
-            if (mounted) {
-              setState(() {
-                _isLoading = false;
-              });
-            }
-            _autoSaveReadingSession(url);
-          },
-        ),
-      )
-      ..loadRequest(Uri.parse(_selectedUrl));
   }
 
   // Load custom sites from persistent storage
   Future<void> _loadCustomSites() async {
     final customSites = await _settingsService.getCustomSites();
-    setState(() {
-      _customSites = customSites;
-      _readingSites = [..._predefinedSites, ..._customSites];
-    });
+    if (mounted) {
+      setState(() {
+        _customSites = customSites;
+        _readingSites = [..._predefinedSites, ..._customSites];
+      });
+    }
   }
 
   // Save custom sites to persistent storage
@@ -78,85 +54,11 @@ class _HomeScreenState extends State<HomeScreen> {
     await _settingsService.saveCustomSites(_customSites);
   }
 
-  Future<void> _autoSaveReadingSession(String url) async {
-    final existingSession = await _databaseService.getSessionByUrl(url);
-    if (existingSession == null) {
-      final session = ReadingHistory(
-        url: url,
-        title: _getPageTitleFromUrl(url),
-        timestamp: DateTime.now(),
-      );
-      await _databaseService.addReadingSession(session);
-    }
-  }
-
-  String _getPageTitleFromUrl(String url) {
-    try {
-      final uri = Uri.parse(url);
-      final host = uri.host;
-      return host
-          .replaceAll('www.', '')
-          .replaceAll('.com', '')
-          .replaceAll('.org', '');
-    } catch (e) {
-      return 'Unknown Site';
-    }
-  }
-
-  Future<void> _saveCurrentSessionAsFavorite() async {
-    final title = await _showSaveDialog();
-    if (title != null) {
-      final session = ReadingHistory(
-        url: _selectedUrl,
-        title: title,
-        timestamp: DateTime.now(),
-        isFavorite: true,
-      );
-      await _databaseService.addReadingSession(session);
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Session saved as favorite!')),
-        );
-      }
-    }
-  }
-
-  Future<String?> _showSaveDialog() async {
-    TextEditingController titleController = TextEditingController();
-    titleController.text = _getPageTitleFromUrl(_selectedUrl);
-
-    return showDialog<String>(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Save Reading Session'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text('Pause the reading session?'),
-              const SizedBox(height: 16),
-              TextField(
-                controller: titleController,
-                decoration: const InputDecoration(
-                  labelText: 'Session Title',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(context, titleController.text),
-              child: const Text('Save'),
-            ),
-          ],
-        );
-      },
+  // Navigate to website
+  void _navigateToWebsite(String url) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => WebViewScreen(url: url)),
     );
   }
 
@@ -311,7 +213,12 @@ class _HomeScreenState extends State<HomeScreen> {
   String _getWebsiteDisplayName(String url) {
     try {
       final uri = Uri.parse(url);
-      return uri.host.replaceAll('www.', '');
+      String host = uri.host.replaceAll('www.', '');
+      // Make the first letter uppercase for better presentation
+      if (host.isNotEmpty) {
+        host = host[0].toUpperCase() + host.substring(1);
+      }
+      return host;
     } catch (e) {
       return url;
     }
@@ -328,16 +235,40 @@ class _HomeScreenState extends State<HomeScreen> {
     return color.withOpacity(opacity);
   }
 
-  void _safeNavigateAfterLogout() {
-    if (mounted) {
-      Navigator.of(context).pushReplacementNamed('/');
-    }
-  }
-
   Color _getTextColorForBackground(Color backgroundColor) {
     return backgroundColor.computeLuminance() > 0.5
         ? Colors.black
         : Colors.white;
+  }
+
+  Widget _buildWebsiteCard(String url) {
+    return Card(
+      elevation: 2,
+      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+      child: ListTile(
+        leading: const Icon(Icons.public, size: 30),
+        title: Text(
+          _getWebsiteDisplayName(url),
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+        ),
+        subtitle: Text(
+          url,
+          style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+          overflow: TextOverflow.ellipsis,
+        ),
+        trailing: _isPredefinedWebsite(url)
+            ? const Icon(Icons.lock, color: Colors.grey, size: 20)
+            : IconButton(
+                icon: const Icon(Icons.delete_outline, size: 20),
+                onPressed: () => _removeWebsite(url),
+                tooltip: 'Remove website',
+              ),
+        onTap: () => _navigateToWebsite(url),
+        onLongPress: _isPredefinedWebsite(url)
+            ? null
+            : () => _removeWebsite(url),
+      ),
+    );
   }
 
   @override
@@ -362,8 +293,14 @@ class _HomeScreenState extends State<HomeScreen> {
                 _settingsService.backgroundColor,
               ),
             ),
-            onPressed: _saveCurrentSessionAsFavorite,
-            tooltip: 'Save Current Session',
+            onPressed: () {
+              // Navigate to favorites or show favorites dialog
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const HistoryScreen()),
+              );
+            },
+            tooltip: 'Favorites',
           ),
           IconButton(
             icon: Icon(
@@ -410,7 +347,9 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             onPressed: () async {
               await _authService.logout();
-              _safeNavigateAfterLogout();
+              if (mounted) {
+                Navigator.of(context).pushReplacementNamed('/');
+              }
             },
             tooltip: 'Logout',
           ),
@@ -425,7 +364,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 color: _withOpacity(_settingsService.sidebarColor, 0.8),
               ),
               child: Text(
-                'Reading Sites',
+                'Reading App',
                 style: TextStyle(
                   color: _getTextColorForBackground(
                     _settingsService.sidebarColor,
@@ -484,44 +423,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 Navigator.pop(context);
                 _showAddWebsiteDialog();
               },
-            ),
-
-            // Reading Sites
-            ..._readingSites.map(
-              (url) => ListTile(
-                title: Text(
-                  _getWebsiteDisplayName(url),
-                  style: TextStyle(
-                    color: _getTextColorForBackground(
-                      _settingsService.sidebarColor,
-                    ),
-                  ),
-                ),
-                trailing: _isPredefinedWebsite(url)
-                    ? null // No remove button for predefined sites
-                    : IconButton(
-                        icon: Icon(
-                          Icons.remove_circle_outline,
-                          color: _withOpacity(
-                            _getTextColorForBackground(
-                              _settingsService.sidebarColor,
-                            ),
-                            0.7,
-                          ),
-                          size: 20,
-                        ),
-                        onPressed: () => _removeWebsite(url),
-                        tooltip: 'Remove website',
-                      ),
-                onTap: () {
-                  setState(() => _selectedUrl = url);
-                  _webViewController.loadRequest(Uri.parse(url));
-                  Navigator.pop(context);
-                },
-                onLongPress: _isPredefinedWebsite(url)
-                    ? null // No long press for predefined sites
-                    : () => _removeWebsite(url),
-              ),
             ),
 
             const Divider(),
@@ -609,6 +510,176 @@ class _HomeScreenState extends State<HomeScreen> {
               },
             ),
           ],
+        ),
+      ),
+      backgroundColor: _settingsService.backgroundColor,
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Welcome to Reading App',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: _getTextColorForBackground(
+                      _settingsService.backgroundColor,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Choose a website to start reading',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: _getTextColorForBackground(
+                      _settingsService.backgroundColor,
+                    ).withOpacity(0.7),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Add Website Button
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: ElevatedButton.icon(
+              icon: const Icon(Icons.add_link),
+              label: const Text('Add New Website'),
+              onPressed: _showAddWebsiteDialog,
+              style: ElevatedButton.styleFrom(
+                minimumSize: const Size(double.infinity, 50),
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          // Websites Section Header
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16.0),
+            child: Text(
+              'Your Reading Websites',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+            ),
+          ),
+
+          const SizedBox(height: 8),
+
+          // Websites List
+          Expanded(
+            child: _readingSites.isEmpty
+                ? const Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.public, size: 64, color: Colors.grey),
+                        SizedBox(height: 16),
+                        Text(
+                          'No websites added yet',
+                          style: TextStyle(fontSize: 16, color: Colors.grey),
+                        ),
+                        SizedBox(height: 8),
+                        Text(
+                          'Tap the button above to add your first website',
+                          style: TextStyle(fontSize: 12, color: Colors.grey),
+                        ),
+                      ],
+                    ),
+                  )
+                : ListView.builder(
+                    itemCount: _readingSites.length,
+                    itemBuilder: (context, index) =>
+                        _buildWebsiteCard(_readingSites[index]),
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// WebView Screen for when user selects a website
+class WebViewScreen extends StatefulWidget {
+  final String url;
+
+  const WebViewScreen({super.key, required this.url});
+
+  @override
+  State<WebViewScreen> createState() => _WebViewScreenState();
+}
+
+class _WebViewScreenState extends State<WebViewScreen> {
+  late final WebViewController _webViewController;
+  bool _isLoading = true;
+  final DatabaseService _databaseService = DatabaseService();
+
+  @override
+  void initState() {
+    super.initState();
+    _webViewController = WebViewController()
+      ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..setNavigationDelegate(
+        NavigationDelegate(
+          onPageStarted: (String url) {
+            if (mounted) {
+              setState(() {
+                _isLoading = true;
+              });
+            }
+          },
+          onPageFinished: (String url) {
+            if (mounted) {
+              setState(() {
+                _isLoading = false;
+              });
+            }
+            _autoSaveReadingSession(url);
+          },
+        ),
+      )
+      ..loadRequest(Uri.parse(widget.url));
+  }
+
+  Future<void> _autoSaveReadingSession(String url) async {
+    final existingSession = await _databaseService.getSessionByUrl(url);
+    if (existingSession == null) {
+      final session = ReadingHistory(
+        url: url,
+        title: _getPageTitleFromUrl(url),
+        timestamp: DateTime.now(),
+      );
+      await _databaseService.addReadingSession(session);
+    }
+  }
+
+  String _getPageTitleFromUrl(String url) {
+    try {
+      final uri = Uri.parse(url);
+      final host = uri.host;
+      return host
+          .replaceAll('www.', '')
+          .replaceAll('.com', '')
+          .replaceAll('.org', '');
+    } catch (e) {
+      return 'Unknown Site';
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(_getPageTitleFromUrl(widget.url)),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pop(context),
         ),
       ),
       body: Stack(
