@@ -15,6 +15,8 @@ class SettingsService {
   static const String _backgroundColorKey = 'background_color';
   static const String _sidebarColorKey = 'sidebar_color';
   static const String _fontScaleKey = 'font_scale';
+  static const String _customSitesKey =
+      'custom_sites'; // New key for custom sites
 
   // Current settings with default values
   Color _backgroundColor = _defaultBackgroundColor;
@@ -102,29 +104,32 @@ class SettingsService {
       await prefs.remove(_backgroundColorKey);
       await prefs.remove(_sidebarColorKey);
       await prefs.remove(_fontScaleKey);
+      await prefs.remove(_customSitesKey); // Also remove custom sites
     } catch (e) {
       // Handle error silently
     }
   }
-}
 
-Future<void> saveCustomSites(List<String> sites) async {
-  try {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setStringList('custom_sites', sites);
-  } catch (e) {
-    // ignore: avoid_print
-    print('Error saving custom sites: $e');
+  // NEW: Save custom websites
+  Future<void> saveCustomSites(List<String> sites) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setStringList(_customSitesKey, sites);
+    } catch (e) {
+      // ignore: avoid_print
+      print('Error saving custom sites: $e');
+    }
   }
-}
 
-Future<List<String>> getCustomSites() async {
-  try {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getStringList('custom_sites') ?? [];
-  } catch (e) {
-    // ignore: avoid_print
-    print('Error loading custom sites: $e');
-    return [];
+  // NEW: Get custom websites
+  Future<List<String>> getCustomSites() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getStringList(_customSitesKey) ?? [];
+    } catch (e) {
+      // ignore: avoid_print
+      print('Error loading custom sites: $e');
+      return [];
+    }
   }
 }

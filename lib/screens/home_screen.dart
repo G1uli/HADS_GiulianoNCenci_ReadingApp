@@ -20,21 +20,26 @@ class _HomeScreenState extends State<HomeScreen> {
   final AuthService _authService = AuthService();
   final SettingsService _settingsService = SettingsService();
   final DatabaseService _databaseService = DatabaseService();
-  
-  // Start with predefined sites, but make it mutable
-  final List<String> _readingSites = [
+
+  // Predefined sites that cannot be removed
+  final List<String> _predefinedSites = [
     'https://mangadex.org',
     'https://www.webnovel.com',
     'https://www.royalroad.com',
   ];
 
-  String _selectedUrl = 'https://mangadex.org';
+  // Combined list of predefined and custom sites
+  List<String> _readingSites = [];
+  List<String> _customSites = [];
+
+  String _selectedUrl = 'https://www.royalroad.com';
   late final WebViewController _webViewController;
   bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
+    _loadCustomSites();
     _webViewController = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setNavigationDelegate(
@@ -52,12 +57,25 @@ class _HomeScreenState extends State<HomeScreen> {
                 _isLoading = false;
               });
             }
-            // Auto-save the reading session when page loads
             _autoSaveReadingSession(url);
           },
         ),
       )
       ..loadRequest(Uri.parse(_selectedUrl));
+  }
+
+  // Load custom sites from persistent storage
+  Future<void> _loadCustomSites() async {
+    final customSites = await _settingsService.getCustomSites();
+    setState(() {
+      _customSites = customSites;
+      _readingSites = [..._predefinedSites, ..._customSites];
+    });
+  }
+
+  // Save custom sites to persistent storage
+  Future<void> _saveCustomSites() async {
+    await _settingsService.saveCustomSites(_customSites);
   }
 
   Future<void> _autoSaveReadingSession(String url) async {
@@ -194,7 +212,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                      content: Text('Please enter a valid URL starting with http:// or https://'),
+                      content: Text(
+                        'Please enter a valid URL starting with http:// or https://',
+                      ),
                       backgroundColor: Colors.red,
                     ),
                   );
@@ -220,29 +240,48 @@ class _HomeScreenState extends State<HomeScreen> {
   void _addNewWebsite(String url, String name) {
     // Ensure URL has proper format
     String formattedUrl = url;
-    if (!formattedUrl.startsWith('http://') && !formattedUrl.startsWith('https://')) {
+    if (!formattedUrl.startsWith('http://') &&
+        !formattedUrl.startsWith('https://')) {
       formattedUrl = 'https://$formattedUrl';
     }
 
     setState(() {
-      _readingSites.add(formattedUrl);
+      _customSites.add(formattedUrl);
+      _readingSites = [..._predefinedSites, ..._customSites];
     });
+
+    _saveCustomSites();
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Website ${name.isNotEmpty ? '"$name" ' : ''}added successfully!'),
+        content: Text(
+          'Website ${name.isNotEmpty ? '"$name" ' : ''}added successfully!',
+        ),
         backgroundColor: Colors.green,
       ),
     );
   }
 
   void _removeWebsite(String url) {
+    // Check if it's a predefined site (cannot be removed)
+    if (_predefinedSites.contains(url)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Predefined websites cannot be removed'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text('Remove Website'),
-          content: Text('Are you sure you want to remove ${Uri.parse(url).host}?'),
+          content: Text(
+            'Are you sure you want to remove ${Uri.parse(url).host}?',
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
@@ -251,8 +290,10 @@ class _HomeScreenState extends State<HomeScreen> {
             ElevatedButton(
               onPressed: () {
                 setState(() {
-                  _readingSites.remove(url);
+                  _customSites.remove(url);
+                  _readingSites = [..._predefinedSites, ..._customSites];
                 });
+                _saveCustomSites();
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Website removed')),
@@ -274,6 +315,11 @@ class _HomeScreenState extends State<HomeScreen> {
     } catch (e) {
       return url;
     }
+  }
+
+  // Check if a website is predefined (cannot be removed)
+  bool _isPredefinedWebsite(String url) {
+    return _predefinedSites.contains(url);
   }
 
   // Helper method to handle opacity without deprecated method
@@ -312,7 +358,9 @@ class _HomeScreenState extends State<HomeScreen> {
           IconButton(
             icon: Icon(
               Icons.favorite,
-              color: _getTextColorForBackground(_settingsService.backgroundColor),
+              color: _getTextColorForBackground(
+                _settingsService.backgroundColor,
+              ),
             ),
             onPressed: _saveCurrentSessionAsFavorite,
             tooltip: 'Save Current Session',
@@ -320,7 +368,9 @@ class _HomeScreenState extends State<HomeScreen> {
           IconButton(
             icon: Icon(
               Icons.picture_as_pdf,
-              color: _getTextColorForBackground(_settingsService.backgroundColor),
+              color: _getTextColorForBackground(
+                _settingsService.backgroundColor,
+              ),
             ),
             onPressed: () {
               Navigator.push(
@@ -335,7 +385,9 @@ class _HomeScreenState extends State<HomeScreen> {
           IconButton(
             icon: Icon(
               Icons.settings,
-              color: _getTextColorForBackground(_settingsService.backgroundColor),
+              color: _getTextColorForBackground(
+                _settingsService.backgroundColor,
+              ),
             ),
             onPressed: () {
               Navigator.push(
@@ -352,7 +404,9 @@ class _HomeScreenState extends State<HomeScreen> {
           IconButton(
             icon: Icon(
               Icons.exit_to_app,
-              color: _getTextColorForBackground(_settingsService.backgroundColor),
+              color: _getTextColorForBackground(
+                _settingsService.backgroundColor,
+              ),
             ),
             onPressed: () async {
               await _authService.logout();
@@ -371,24 +425,30 @@ class _HomeScreenState extends State<HomeScreen> {
                 color: _withOpacity(_settingsService.sidebarColor, 0.8),
               ),
               child: Text(
-                'Reading Sites', 
+                'Reading Sites',
                 style: TextStyle(
-                  color: _getTextColorForBackground(_settingsService.sidebarColor),
+                  color: _getTextColorForBackground(
+                    _settingsService.sidebarColor,
+                  ),
                   fontSize: 24,
                 ),
               ),
             ),
-            
+
             // History Button
             ListTile(
               leading: Icon(
                 Icons.history,
-                color: _getTextColorForBackground(_settingsService.sidebarColor),
+                color: _getTextColorForBackground(
+                  _settingsService.sidebarColor,
+                ),
               ),
               title: Text(
                 'Reading History',
                 style: TextStyle(
-                  color: _getTextColorForBackground(_settingsService.sidebarColor),
+                  color: _getTextColorForBackground(
+                    _settingsService.sidebarColor,
+                  ),
                 ),
               ),
               onTap: () {
@@ -408,12 +468,16 @@ class _HomeScreenState extends State<HomeScreen> {
             ListTile(
               leading: Icon(
                 Icons.add_link,
-                color: _getTextColorForBackground(_settingsService.sidebarColor),
+                color: _getTextColorForBackground(
+                  _settingsService.sidebarColor,
+                ),
               ),
               title: Text(
                 'Add New Website',
                 style: TextStyle(
-                  color: _getTextColorForBackground(_settingsService.sidebarColor),
+                  color: _getTextColorForBackground(
+                    _settingsService.sidebarColor,
+                  ),
                 ),
               ),
               onTap: () {
@@ -428,24 +492,35 @@ class _HomeScreenState extends State<HomeScreen> {
                 title: Text(
                   _getWebsiteDisplayName(url),
                   style: TextStyle(
-                    color: _getTextColorForBackground(_settingsService.sidebarColor),
+                    color: _getTextColorForBackground(
+                      _settingsService.sidebarColor,
+                    ),
                   ),
                 ),
-                trailing: IconButton(
-                  icon: Icon(
-                    Icons.remove_circle_outline,
-                    color: _withOpacity(_getTextColorForBackground(_settingsService.sidebarColor), 0.7),
-                    size: 20,
-                  ),
-                  onPressed: () => _removeWebsite(url),
-                  tooltip: 'Remove website',
-                ),
+                trailing: _isPredefinedWebsite(url)
+                    ? null // No remove button for predefined sites
+                    : IconButton(
+                        icon: Icon(
+                          Icons.remove_circle_outline,
+                          color: _withOpacity(
+                            _getTextColorForBackground(
+                              _settingsService.sidebarColor,
+                            ),
+                            0.7,
+                          ),
+                          size: 20,
+                        ),
+                        onPressed: () => _removeWebsite(url),
+                        tooltip: 'Remove website',
+                      ),
                 onTap: () {
                   setState(() => _selectedUrl = url);
                   _webViewController.loadRequest(Uri.parse(url));
                   Navigator.pop(context);
                 },
-                onLongPress: () => _removeWebsite(url),
+                onLongPress: _isPredefinedWebsite(url)
+                    ? null // No long press for predefined sites
+                    : () => _removeWebsite(url),
               ),
             ),
 
@@ -455,12 +530,16 @@ class _HomeScreenState extends State<HomeScreen> {
             ListTile(
               leading: Icon(
                 Icons.picture_as_pdf,
-                color: _getTextColorForBackground(_settingsService.sidebarColor),
+                color: _getTextColorForBackground(
+                  _settingsService.sidebarColor,
+                ),
               ),
               title: Text(
                 'PDF to Text Converter',
                 style: TextStyle(
-                  color: _getTextColorForBackground(_settingsService.sidebarColor),
+                  color: _getTextColorForBackground(
+                    _settingsService.sidebarColor,
+                  ),
                 ),
               ),
               onTap: () {
@@ -478,12 +557,16 @@ class _HomeScreenState extends State<HomeScreen> {
             ListTile(
               leading: Icon(
                 Icons.people,
-                color: _getTextColorForBackground(_settingsService.sidebarColor),
+                color: _getTextColorForBackground(
+                  _settingsService.sidebarColor,
+                ),
               ),
               title: Text(
                 'Registered Accounts',
                 style: TextStyle(
-                  color: _getTextColorForBackground(_settingsService.sidebarColor),
+                  color: _getTextColorForBackground(
+                    _settingsService.sidebarColor,
+                  ),
                 ),
               ),
               onTap: () {
@@ -501,12 +584,16 @@ class _HomeScreenState extends State<HomeScreen> {
             ListTile(
               leading: Icon(
                 Icons.settings,
-                color: _getTextColorForBackground(_settingsService.sidebarColor),
+                color: _getTextColorForBackground(
+                  _settingsService.sidebarColor,
+                ),
               ),
               title: Text(
                 'Settings',
                 style: TextStyle(
-                  color: _getTextColorForBackground(_settingsService.sidebarColor),
+                  color: _getTextColorForBackground(
+                    _settingsService.sidebarColor,
+                  ),
                 ),
               ),
               onTap: () {
@@ -517,7 +604,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     builder: (context) => const SettingsScreen(),
                   ),
                 ).then((_) {
-                    setState(() {});
+                  setState(() {});
                 });
               },
             ),
