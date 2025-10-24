@@ -19,7 +19,6 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final AuthService _authService = AuthService();
   final SettingsService _settingsService = SettingsService();
-  final DatabaseService _databaseService = DatabaseService();
 
   // Predefined sites that cannot be removed
   final List<String> _predefinedSites = [
@@ -241,25 +240,76 @@ class _HomeScreenState extends State<HomeScreen> {
         : Colors.white;
   }
 
+  // Get card background color based on settings
+  Color _getCardBackgroundColor() {
+    final bgColor = _settingsService.backgroundColor;
+    // If background is very dark, use a slightly lighter dark color for cards
+    if (bgColor.computeLuminance() < 0.1) {
+      return Colors.grey[850]!;
+    }
+    // If background is very light, use white for cards
+    else if (bgColor.computeLuminance() > 0.9) {
+      return Colors.white;
+    }
+    // Otherwise, use a slightly different shade of the background
+    else {
+      return _withOpacity(bgColor, 0.95);
+    }
+  }
+
+  // Get card text color based on background
+  Color _getCardTextColor() {
+    final bgColor = _getCardBackgroundColor();
+    return bgColor.computeLuminance() > 0.5 ? Colors.black : Colors.white;
+  }
+
+  // Get card subtitle color based on background
+  Color _getCardSubtitleColor() {
+    final bgColor = _getCardBackgroundColor();
+    return bgColor.computeLuminance() > 0.5
+        ? Colors.grey[600]!
+        : Colors.grey[400]!;
+  }
+
+  // Get icon color based on background
+  Color _getIconColor() {
+    final bgColor = _getCardBackgroundColor();
+    return bgColor.computeLuminance() > 0.5 ? Colors.blue : Colors.blue[200]!;
+  }
+
   Widget _buildWebsiteCard(String url) {
+    final cardBackgroundColor = _getCardBackgroundColor();
+    final textColor = _getCardTextColor();
+    final subtitleColor = _getCardSubtitleColor();
+    final iconColor = _getIconColor();
+
     return Card(
       elevation: 2,
+      color: cardBackgroundColor,
       margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
       child: ListTile(
-        leading: const Icon(Icons.public, size: 30),
+        leading: Icon(Icons.public, size: 30, color: iconColor),
         title: Text(
           _getWebsiteDisplayName(url),
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
+            color: textColor,
+          ),
         ),
         subtitle: Text(
           url,
-          style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+          style: TextStyle(fontSize: 12, color: subtitleColor),
           overflow: TextOverflow.ellipsis,
         ),
         trailing: _isPredefinedWebsite(url)
-            ? const Icon(Icons.lock, color: Colors.grey, size: 20)
+            ? Icon(Icons.lock, color: subtitleColor, size: 20)
             : IconButton(
-                icon: const Icon(Icons.delete_outline, size: 20),
+                icon: Icon(
+                  Icons.delete_outline,
+                  size: 20,
+                  color: subtitleColor,
+                ),
                 onPressed: () => _removeWebsite(url),
                 tooltip: 'Remove website',
               ),
@@ -273,28 +323,19 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final backgroundColor = _settingsService.backgroundColor;
+    final textColor = _getTextColorForBackground(backgroundColor);
+    final subtitleColor = textColor.withOpacity(0.7);
+
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          'Reading App',
-          style: TextStyle(
-            color: _getTextColorForBackground(_settingsService.backgroundColor),
-          ),
-        ),
-        backgroundColor: _settingsService.backgroundColor,
-        iconTheme: IconThemeData(
-          color: _getTextColorForBackground(_settingsService.backgroundColor),
-        ),
+        title: Text('Reading App', style: TextStyle(color: textColor)),
+        backgroundColor: backgroundColor,
+        iconTheme: IconThemeData(color: textColor),
         actions: [
           IconButton(
-            icon: Icon(
-              Icons.favorite,
-              color: _getTextColorForBackground(
-                _settingsService.backgroundColor,
-              ),
-            ),
+            icon: Icon(Icons.favorite, color: textColor),
             onPressed: () {
-              // Navigate to favorites or show favorites dialog
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => const HistoryScreen()),
@@ -303,12 +344,7 @@ class _HomeScreenState extends State<HomeScreen> {
             tooltip: 'Favorites',
           ),
           IconButton(
-            icon: Icon(
-              Icons.picture_as_pdf,
-              color: _getTextColorForBackground(
-                _settingsService.backgroundColor,
-              ),
-            ),
+            icon: Icon(Icons.picture_as_pdf, color: textColor),
             onPressed: () {
               Navigator.push(
                 context,
@@ -320,12 +356,7 @@ class _HomeScreenState extends State<HomeScreen> {
             tooltip: 'PDF to Text Converter',
           ),
           IconButton(
-            icon: Icon(
-              Icons.settings,
-              color: _getTextColorForBackground(
-                _settingsService.backgroundColor,
-              ),
-            ),
+            icon: Icon(Icons.settings, color: textColor),
             onPressed: () {
               Navigator.push(
                 context,
@@ -339,12 +370,7 @@ class _HomeScreenState extends State<HomeScreen> {
             tooltip: 'Settings',
           ),
           IconButton(
-            icon: Icon(
-              Icons.exit_to_app,
-              color: _getTextColorForBackground(
-                _settingsService.backgroundColor,
-              ),
-            ),
+            icon: Icon(Icons.exit_to_app, color: textColor),
             onPressed: () async {
               await _authService.logout();
               if (mounted) {
@@ -512,7 +538,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
       ),
-      backgroundColor: _settingsService.backgroundColor,
+      backgroundColor: backgroundColor,
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -527,20 +553,13 @@ class _HomeScreenState extends State<HomeScreen> {
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
-                    color: _getTextColorForBackground(
-                      _settingsService.backgroundColor,
-                    ),
+                    color: textColor,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   'Choose a website to start reading',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: _getTextColorForBackground(
-                      _settingsService.backgroundColor,
-                    ).withOpacity(0.7),
-                  ),
+                  style: TextStyle(fontSize: 14, color: subtitleColor),
                 ),
               ],
             ),
@@ -562,11 +581,15 @@ class _HomeScreenState extends State<HomeScreen> {
           const SizedBox(height: 16),
 
           // Websites Section Header
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16.0),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
             child: Text(
               'Your Reading Websites',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: textColor,
+              ),
             ),
           ),
 
@@ -575,20 +598,20 @@ class _HomeScreenState extends State<HomeScreen> {
           // Websites List
           Expanded(
             child: _readingSites.isEmpty
-                ? const Center(
+                ? Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.public, size: 64, color: Colors.grey),
-                        SizedBox(height: 16),
+                        Icon(Icons.public, size: 64, color: subtitleColor),
+                        const SizedBox(height: 16),
                         Text(
                           'No websites added yet',
-                          style: TextStyle(fontSize: 16, color: Colors.grey),
+                          style: TextStyle(fontSize: 16, color: subtitleColor),
                         ),
-                        SizedBox(height: 8),
+                        const SizedBox(height: 8),
                         Text(
                           'Tap the button above to add your first website',
-                          style: TextStyle(fontSize: 12, color: Colors.grey),
+                          style: TextStyle(fontSize: 12, color: subtitleColor),
                         ),
                       ],
                     ),
