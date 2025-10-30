@@ -5,9 +5,9 @@ import '../services/auth_service.dart';
 import '../services/settings_service.dart';
 import '../services/database_service.dart';
 import '../models/reading_history.dart';
-import '../screens/pdf_conversion_screen.dart';
 import '../screens/settings_screen.dart';
 import '../screens/history_screen.dart';
+import '../screens/file_browser_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -325,6 +325,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final backgroundColor = _settingsService.backgroundColor;
     final textColor = _getTextColorForBackground(backgroundColor);
+    // ignore: deprecated_member_use
     final subtitleColor = textColor.withOpacity(0.7);
 
     return Scaffold(
@@ -344,16 +345,16 @@ class _HomeScreenState extends State<HomeScreen> {
             tooltip: 'Favorites',
           ),
           IconButton(
-            icon: Icon(Icons.picture_as_pdf, color: textColor),
+            icon: Icon(Icons.folder_open, color: textColor),
             onPressed: () {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => const PdfConversionScreen(),
+                  builder: (context) => const FileBrowserScreen(),
                 ),
               );
             },
-            tooltip: 'PDF to Text Converter',
+            tooltip: 'File Browser',
           ),
           IconButton(
             icon: Icon(Icons.settings, color: textColor),
@@ -456,13 +457,13 @@ class _HomeScreenState extends State<HomeScreen> {
             // PDF Converter
             ListTile(
               leading: Icon(
-                Icons.picture_as_pdf,
+                Icons.folder_open,
                 color: _getTextColorForBackground(
                   _settingsService.sidebarColor,
                 ),
               ),
               title: Text(
-                'PDF to Text Converter',
+                'File Browser',
                 style: TextStyle(
                   color: _getTextColorForBackground(
                     _settingsService.sidebarColor,
@@ -474,7 +475,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => const PdfConversionScreen(),
+                    builder: (context) => const FileBrowserScreen(),
                   ),
                 );
               },
