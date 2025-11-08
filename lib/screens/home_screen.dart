@@ -8,6 +8,7 @@ import '../models/reading_history.dart';
 import '../screens/settings_screen.dart';
 import '../screens/history_screen.dart';
 import '../screens/file_browser_screen.dart';
+import '../screens/login_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -45,6 +46,42 @@ class _HomeScreenState extends State<HomeScreen> {
         _customSites = customSites;
         _readingSites = [..._predefinedSites, ..._customSites];
       });
+    }
+  }
+
+  Future<void> _performLogout() async {
+    try {
+      if (mounted) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (BuildContext context) {
+            return const Center(child: CircularProgressIndicator());
+          },
+        );
+      }
+
+      // Perform logout
+      await _authService.logout();
+
+      // Navigate to login screen
+      if (mounted) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => const LoginScreen()),
+          (Route<dynamic> route) => false,
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.of(context).pop();
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Logout failed: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -372,12 +409,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           IconButton(
             icon: Icon(Icons.exit_to_app, color: textColor),
-            onPressed: () async {
-              await _authService.logout();
-              if (mounted) {
-                Navigator.of(context).pushReplacementNamed('/');
-              }
-            },
+            onPressed: _performLogout,
             tooltip: 'Logout',
           ),
         ],
@@ -400,35 +432,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
             ),
-
-            // History Button
-            ListTile(
-              leading: Icon(
-                Icons.history,
-                color: _getTextColorForBackground(
-                  _settingsService.sidebarColor,
-                ),
-              ),
-              title: Text(
-                'Reading History',
-                style: TextStyle(
-                  color: _getTextColorForBackground(
-                    _settingsService.sidebarColor,
-                  ),
-                ),
-              ),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const HistoryScreen(),
-                  ),
-                );
-              },
-            ),
-
-            const Divider(),
 
             // Add Website Button
             ListTile(
@@ -481,6 +484,8 @@ class _HomeScreenState extends State<HomeScreen> {
               },
             ),
 
+            const Divider(),
+
             // Registered Accounts
             ListTile(
               leading: Icon(
@@ -507,6 +512,37 @@ class _HomeScreenState extends State<HomeScreen> {
                 );
               },
             ),
+
+            const Divider(),
+
+            // History Button
+            ListTile(
+              leading: Icon(
+                Icons.history,
+                color: _getTextColorForBackground(
+                  _settingsService.sidebarColor,
+                ),
+              ),
+              title: Text(
+                'Reading History',
+                style: TextStyle(
+                  color: _getTextColorForBackground(
+                    _settingsService.sidebarColor,
+                  ),
+                ),
+              ),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const HistoryScreen(),
+                  ),
+                );
+              },
+            ),
+
+            const Divider(),
 
             // Settings
             ListTile(
@@ -536,6 +572,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 });
               },
             ),
+            
+            const Divider(),
+            
           ],
         ),
       ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/database_service.dart';
 import '../models/reading_history.dart';
+import 'home_screen.dart'; 
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
@@ -239,7 +240,12 @@ class _HistoryScreenState extends State<HistoryScreen> {
           ],
         ),
         onTap: () {
-          Navigator.pop(context, session.url);
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => WebViewScreen(url: session.url),
+            ),
+          );
         },
       ),
     );

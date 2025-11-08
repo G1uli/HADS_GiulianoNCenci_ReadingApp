@@ -44,14 +44,28 @@ class AuthService {
     
     final prefs = await SharedPreferences.getInstance();
     
-    // Store account credentials
-    await prefs.setString('current_email', email);
-    await prefs.setString('current_password', password);
-    await prefs.setString('current_name', name);
-    await prefs.setString('current_birthDate', birthDate.toIso8601String());
-    await prefs.setBool('isLoggedIn', true);
+    // Store account credentials separately
+    final credentialsJson = prefs.getStringList('account_credentials') ?? [];
     
-    // Add to accounts list
+    // Check if account already exists
+    if (credentialsJson.any((credentialJson) {
+      final credential = _jsonDecode(credentialJson);
+      return credential['email'] == email;
+    })) {
+      return false; // Account already exists
+    }
+    
+    // Add new credentials
+    final newCredential = {
+      'email': email,
+      'password': password,
+      'name': name,
+      'birthDate': birthDate.toIso8601String(),
+    };
+    credentialsJson.add(_jsonEncode(newCredential));
+    await prefs.setStringList('account_credentials', credentialsJson);
+    
+    // Store account info (without password) for accounts screen
     final accountsJson = prefs.getStringList('user_accounts') ?? [];
     final newAccount = UserAccount(
       email: email,
@@ -60,26 +74,36 @@ class AuthService {
       registrationDate: DateTime.now(),
     );
     
-    // Check if account already exists
-    if (!accountsJson.any((accountJson) {
-      final account = UserAccount.fromMap(_jsonDecode(accountJson));
-      return account.email == email;
-    })) {
-      accountsJson.add(_jsonEncode(newAccount.toMap()));
-      await prefs.setStringList('user_accounts', accountsJson);
-    }
+    accountsJson.add(_jsonEncode(newAccount.toMap()));
+    await prefs.setStringList('user_accounts', accountsJson);
+    
+    // Set as current session
+    await prefs.setString('current_email', email);
+    await prefs.setString('current_password', password);
+    await prefs.setString('current_name', name);
+    await prefs.setString('current_birthDate', birthDate.toIso8601String());
+    await prefs.setBool('isLoggedIn', true);
     
     return true;
   }
 
   Future<bool> login(String email, String password) async {
     final prefs = await SharedPreferences.getInstance();
-    final storedEmail = prefs.getString('current_email');
-    final storedPassword = prefs.getString('current_password');
     
-    if (email == storedEmail && password == storedPassword) {
-      await prefs.setBool('isLoggedIn', true);
-      return true;
+    // Get stored credentials
+    final credentialsJson = prefs.getStringList('account_credentials') ?? [];
+    
+    for (final credentialJson in credentialsJson) {
+      final credential = _jsonDecode(credentialJson);
+      if (credential['email'] == email && credential['password'] == password) {
+        // Set current session
+        await prefs.setString('current_email', email);
+        await prefs.setString('current_password', password);
+        await prefs.setString('current_name', credential['name'] ?? '');
+        await prefs.setString('current_birthDate', credential['birthDate'] ?? '');
+        await prefs.setBool('isLoggedIn', true);
+        return true;
+      }
     }
     
     return false;
@@ -93,6 +117,11 @@ class AuthService {
   Future<void> logout() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('isLoggedIn', false);
+    await prefs.remove('current_email');
+    await prefs.remove('current_password');
+    await prefs.remove('current_name');
+    await prefs.remove('current_birthDate');
+    print('Logged out. Registered accounts preserved.');
   }
 
   Future<String?> getEmail() async {
@@ -118,15 +147,16 @@ class AuthService {
   // Switch to a different account
   Future<bool> switchAccount(String email) async {
     final prefs = await SharedPreferences.getInstance();
-    final accountsJson = prefs.getStringList('user_accounts') ?? [];
+    final credentialsJson = prefs.getStringList('account_credentials') ?? [];
     
-    for (final accountJson in accountsJson) {
-      final account = UserAccount.fromMap(_jsonDecode(accountJson));
-      if (account.email == email) {
+    for (final credentialJson in credentialsJson) {
+      final credential = _jsonDecode(credentialJson);
+      if (credential['email'] == email) {
         // Update current account info
-        await prefs.setString('current_email', account.email);
-        await prefs.setString('current_name', account.name);
-        await prefs.setString('current_birthDate', account.birthDate.toIso8601String());
+        await prefs.setString('current_email', email);
+        await prefs.setString('current_password', credential['password'] ?? '');
+        await prefs.setString('current_name', credential['name'] ?? '');
+        await prefs.setString('current_birthDate', credential['birthDate'] ?? '');
         await prefs.setBool('isLoggedIn', true);
         return true;
       }
@@ -135,9 +165,41 @@ class AuthService {
     return false;
   }
 
-  // Helper methods for JSON encoding/decoding
+  // Delete a specific account
+  Future<bool> deleteAccount(String email) async {
+    final prefs = await SharedPreferences.getInstance();
+    
+    // Remove from credentials
+    final credentialsJson = prefs.getStringList('account_credentials') ?? [];
+    final updatedCredentials = credentialsJson.where((credentialJson) {
+      final credential = _jsonDecode(credentialJson);
+      return credential['email'] != email;
+    }).toList();
+    
+    // Remove from accounts list
+    final accountsJson = prefs.getStringList('user_accounts') ?? [];
+    final updatedAccounts = accountsJson.where((accountJson) {
+      final account = UserAccount.fromMap(_jsonDecode(accountJson));
+      return account.email != email;
+    }).toList();
+    
+    if (updatedCredentials.length < credentialsJson.length) {
+      await prefs.setStringList('account_credentials', updatedCredentials);
+      await prefs.setStringList('user_accounts', updatedAccounts);
+      
+      // If the deleted account is the currently logged-in one, logout
+      final currentEmail = prefs.getString('current_email');
+      if (currentEmail == email) {
+        await logout();
+      }
+      
+      return true;
+    }
+    
+    return false;
+  }
+
   Map<String, dynamic> _jsonDecode(String jsonString) {
-    // Simple JSON decoding for our map structure
     final Map<String, dynamic> result = {};
     final pairs = jsonString.replaceAll('{', '').replaceAll('}', '').split(', ');
     
@@ -147,7 +209,6 @@ class AuthService {
         final key = keyValue[0].trim();
         final value = keyValue[1].trim();
         
-        // Remove quotes from key and value
         final cleanKey = key.replaceAll('"', '');
         final cleanValue = value.replaceAll('"', '');
         
@@ -159,7 +220,6 @@ class AuthService {
   }
 
   String _jsonEncode(Map<String, dynamic> map) {
-    // Simple JSON encoding for our map structure
     final entries = map.entries.map((entry) => '"${entry.key}": "${entry.value}"');
     return '{${entries.join(', ')}}';
   }

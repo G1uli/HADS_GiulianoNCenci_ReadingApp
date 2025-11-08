@@ -4,6 +4,11 @@ import 'package:reading_app/screens/home_screen.dart';
 import 'package:reading_app/services/auth_service.dart';
 import 'package:reading_app/services/settings_service.dart';
 
+
+
+
+//Remember to add option to change password by sending a code to the chosen email and make it so the history persists on the 
+
 void main() async {
   // Initialize settings first
   final settingsService = SettingsService();
