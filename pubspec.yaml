@@ -21,6 +21,7 @@ dependencies:
   sqflite: ^2.2.8+1  # Stable version
   path: ^1.8.3
   open_file: ^3.3.3
+  mailer: ^6.6.0
 
 dev_dependencies:
   flutter_test:

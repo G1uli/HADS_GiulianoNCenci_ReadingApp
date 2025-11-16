@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:reading_app/screens/password_reset_screen.dart';
 import 'package:reading_app/services/auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -163,6 +164,17 @@ class _LoginScreenState extends State<LoginScreen> {
                   },
                 ),
               ],
+              TextButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const PasswordResetScreen(),
+                    ),
+                  );
+                },
+                child: const Text('Forgot Password?'),
+              ),
               const SizedBox(height: 24),
               ElevatedButton(
                 onPressed: _submit,

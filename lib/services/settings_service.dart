@@ -116,8 +116,8 @@ class SettingsService {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setStringList(_customSitesKey, sites);
     } catch (e) {
-      // ignore: avoid_print
-      print('Error saving custom sites: $e');
+
+      debugPrint('Error saving custom sites: $e');
     }
   }
 
@@ -127,8 +127,7 @@ class SettingsService {
       final prefs = await SharedPreferences.getInstance();
       return prefs.getStringList(_customSitesKey) ?? [];
     } catch (e) {
-      // ignore: avoid_print
-      print('Error loading custom sites: $e');
+      debugPrint('Error loading custom sites: $e');
       return [];
     }
   }

@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'dart:async';
-import 'package:flutter/foundation.dart'; // Add this import for debugPrint
+import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:syncfusion_flutter_pdf/pdf.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -10,9 +10,7 @@ class PdfService {
   factory PdfService() => _instance;
   PdfService._internal();
 
-  // Simple logging method using debugPrint
   void _log(String message) {
-    // Use debugPrint instead of print for better performance
     if (kDebugMode) {
       debugPrint('PdfService: $message');
     }
