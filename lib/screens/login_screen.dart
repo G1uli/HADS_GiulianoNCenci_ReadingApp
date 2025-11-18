@@ -113,7 +113,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   decoration: const InputDecoration(labelText: 'Full Name'),
                   validator: (value) {
                     if (value == null || value.length < 5) {
-                      return 'Nome deve possuir 5 caracteres'; // RN01
+                      return 'Nome deve possuir 5 caracteres';
                     }
                     return null;
                   },
@@ -138,7 +138,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 obscureText: true,
                 validator: (value) {
                   if (value == null || value.length < 6) {
-                    return 'Senha deve ter 6 digitos'; // RN02
+                    return 'Senha deve ter 6 digitos';
                   }
                   return null;
                 },

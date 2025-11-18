@@ -1,5 +1,4 @@
 // ignore_for_file: deprecated_member_use
-
 import 'package:flutter/material.dart';
 import 'package:reading_app/services/settings_service.dart';
 
@@ -49,14 +48,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _selectedSidebarColor = _settingsService.sidebarColor;
   }
 
-  // Helper method to determine text color based on background brightness
+  // Change font color depending on how bright
   Color _getTextColorForBackground(Color backgroundColor) {
     return backgroundColor.computeLuminance() > 0.5
         ? Colors.black
         : Colors.white;
   }
 
-  // Helper method to compare colors without using deprecated value
+  // Compare colors
   bool _colorsAreEqual(Color color1, Color color2) {
     return color1.red == color2.red &&
         color1.green == color2.green &&

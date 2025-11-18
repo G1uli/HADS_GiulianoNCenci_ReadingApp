@@ -4,6 +4,7 @@ class ReadingHistory {
   final String title;
   final DateTime timestamp;
   final bool isFavorite;
+  final String userEmail;
 
   ReadingHistory({
     this.id,
@@ -11,6 +12,7 @@ class ReadingHistory {
     required this.title,
     required this.timestamp,
     this.isFavorite = false,
+    required this.userEmail,
   });
 
   Map<String, dynamic> toMap() {
@@ -20,6 +22,7 @@ class ReadingHistory {
       'title': title,
       'timestamp': timestamp.millisecondsSinceEpoch,
       'isFavorite': isFavorite ? 1 : 0,
+      'userEmail': userEmail,
     };
   }
 
@@ -30,6 +33,7 @@ class ReadingHistory {
       title: map['title'],
       timestamp: DateTime.fromMillisecondsSinceEpoch(map['timestamp']),
       isFavorite: map['isFavorite'] == 1,
+      userEmail: map['userEmail'],
     );
   }
 }

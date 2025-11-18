@@ -32,7 +32,6 @@ class _PdfConversionScreenState extends State<PdfConversionScreen> {
   }
 
   Future<void> _pickAndConvertPdf() async {
-    // Request storage permission
     final hasPermission = await _pdfService.requestStoragePermission();
     if (!hasPermission) {
       if (mounted) {
@@ -47,7 +46,7 @@ class _PdfConversionScreenState extends State<PdfConversionScreen> {
       return;
     }
 
-    // Pick PDF file using file_picker
+    // Pick file
     FilePickerResult? result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['pdf'],

@@ -21,8 +21,9 @@ class DatabaseService {
 
     return await sql.openDatabase(
       databasePath,
-      version: 1,
+      version: 2, // Increment version to update schema
       onCreate: _createTables,
+      onUpgrade: _upgradeDatabase, // Add this for migration
     );
   }
 
@@ -33,34 +34,52 @@ class DatabaseService {
         url TEXT NOT NULL,
         title TEXT NOT NULL,
         timestamp INTEGER NOT NULL,
-        isFavorite INTEGER NOT NULL DEFAULT 0
+        isFavorite INTEGER NOT NULL DEFAULT 0,
+        userEmail TEXT NOT NULL
       )
     ''');
   }
 
-  // Add a reading session
+  // Upgrade database to add userEmail column
+  Future<void> _upgradeDatabase(
+    sql.Database db,
+    int oldVersion,
+    int newVersion,
+  ) async {
+    if (oldVersion < 2) {
+      await db.execute('''
+        ALTER TABLE reading_history ADD COLUMN userEmail TEXT NOT NULL DEFAULT 'default@user.com'
+      ''');
+    }
+  }
+
+  // Add a reading session with user email
   Future<int> addReadingSession(ReadingHistory history) async {
     final db = await database;
     return await db.insert('reading_history', history.toMap());
   }
 
-  // Get all reading sessions
-  Future<List<ReadingHistory>> getAllReadingSessions() async {
+  // Get all reading sessions for a specific user
+  Future<List<ReadingHistory>> getSessionsByUser(String userEmail) async {
     final db = await database;
     final List<Map<String, dynamic>> maps = await db.query(
       'reading_history',
+      where: 'userEmail = ?',
+      whereArgs: [userEmail],
       orderBy: 'timestamp DESC',
     );
     return List.generate(maps.length, (i) => ReadingHistory.fromMap(maps[i]));
   }
 
-  // Get favorite sessions only
-  Future<List<ReadingHistory>> getFavoriteSessions() async {
+  // Get favorite sessions only for a specific user
+  Future<List<ReadingHistory>> getFavoriteSessionsByUser(
+    String userEmail,
+  ) async {
     final db = await database;
     final List<Map<String, dynamic>> maps = await db.query(
       'reading_history',
-      where: 'isFavorite = ?',
-      whereArgs: [1],
+      where: 'isFavorite = ? AND userEmail = ?',
+      whereArgs: [1, userEmail],
       orderBy: 'timestamp DESC',
     );
     return List.generate(maps.length, (i) => ReadingHistory.fromMap(maps[i]));
@@ -72,19 +91,66 @@ class DatabaseService {
     return await db.update(
       'reading_history',
       history.toMap(),
-      where: 'id = ?',
-      whereArgs: [history.id],
+      where: 'id = ? AND userEmail = ?',
+      whereArgs: [history.id, history.userEmail],
     );
   }
 
-  // Delete a session
-  Future<int> deleteSession(int id) async {
+  // Delete a session for specific user
+  Future<int> deleteSession(int id, String userEmail) async {
+    final db = await database;
+    return await db.delete(
+      'reading_history',
+      where: 'id = ? AND userEmail = ?',
+      whereArgs: [id, userEmail],
+    );
+  }
+
+  // Check if URL already exists for specific user
+  Future<ReadingHistory?> getSessionByUrl(String url, String userEmail) async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'reading_history',
+      where: 'url = ? AND userEmail = ?',
+      whereArgs: [url, userEmail],
+    );
+    if (maps.isNotEmpty) {
+      return ReadingHistory.fromMap(maps.first);
+    }
+    return null;
+  }
+
+  // Keep these for backward compatibility or remove them
+  // Get all reading sessions (all users - for backward compatibility)
+  Future<List<ReadingHistory>> getAllReadingSessions() async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'reading_history',
+      orderBy: 'timestamp DESC',
+    );
+    return List.generate(maps.length, (i) => ReadingHistory.fromMap(maps[i]));
+  }
+
+  // Get favorite sessions only (all users - for backward compatibility)
+  Future<List<ReadingHistory>> getFavoriteSessions() async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'reading_history',
+      where: 'isFavorite = ?',
+      whereArgs: [1],
+      orderBy: 'timestamp DESC',
+    );
+    return List.generate(maps.length, (i) => ReadingHistory.fromMap(maps[i]));
+  }
+
+  // Delete a session (old method - for backward compatibility)
+  Future<int> deleteSessionOld(int id) async {
     final db = await database;
     return await db.delete('reading_history', where: 'id = ?', whereArgs: [id]);
   }
 
-  // Check if URL already exists
-  Future<ReadingHistory?> getSessionByUrl(String url) async {
+  // Check if URL already exists (old method - for backward compatibility)
+  Future<ReadingHistory?> getSessionByUrlOld(String url) async {
     final db = await database;
     final List<Map<String, dynamic>> maps = await db.query(
       'reading_history',

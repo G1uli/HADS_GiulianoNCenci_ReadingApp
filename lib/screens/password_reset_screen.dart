@@ -12,7 +12,7 @@ class _PasswordResetScreenState extends State<PasswordResetScreen> {
   final TextEditingController _emailController = TextEditingController();
   final AuthService _authService = AuthService();
   bool _isLoading = false;
-  bool _resetSuccessful = false; // Added this missing variable
+  bool _resetSuccessful = false;
   String _message = '';
 
   Future<void> _requestPasswordReset() async {
@@ -135,7 +135,7 @@ class _PasswordResetScreenState extends State<PasswordResetScreen> {
                       ),
                     ),
             ] else ...[
-              // Show success message
+              // Show confirmed message
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(16),

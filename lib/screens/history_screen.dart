@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import '../services/database_service.dart';
+import '../services/auth_service.dart';
 import '../models/reading_history.dart';
-import 'home_screen.dart'; 
+import 'home_screen.dart';
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
@@ -12,6 +13,7 @@ class HistoryScreen extends StatefulWidget {
 
 class _HistoryScreenState extends State<HistoryScreen> {
   final DatabaseService _databaseService = DatabaseService();
+  final AuthService _authService = AuthService();
   List<ReadingHistory> _readingSessions = [];
   List<ReadingHistory> _filteredSessions = [];
   bool _showFavoritesOnly = false;
@@ -24,9 +26,12 @@ class _HistoryScreenState extends State<HistoryScreen> {
   }
 
   Future<void> _loadReadingSessions() async {
+    final currentUserEmail = await _authService.getCurrentUserEmail();
+    if (currentUserEmail == null) return;
+
     final sessions = _showFavoritesOnly
-        ? await _databaseService.getFavoriteSessions()
-        : await _databaseService.getAllReadingSessions();
+        ? await _databaseService.getFavoriteSessionsByUser(currentUserEmail)
+        : await _databaseService.getSessionsByUser(currentUserEmail);
 
     if (mounted) {
       setState(() {
@@ -59,12 +64,16 @@ class _HistoryScreenState extends State<HistoryScreen> {
   }
 
   Future<void> _toggleFavorite(ReadingHistory session) async {
+    final currentUserEmail = await _authService.getCurrentUserEmail();
+    if (currentUserEmail == null) return;
+
     final updatedSession = ReadingHistory(
       id: session.id,
       url: session.url,
       title: session.title,
       timestamp: session.timestamp,
       isFavorite: !session.isFavorite,
+      userEmail: currentUserEmail,
     );
 
     await _databaseService.updateSession(updatedSession);
@@ -72,7 +81,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
   }
 
   Future<void> _deleteSession(int id) async {
-    await _databaseService.deleteSession(id);
+    final currentUserEmail = await _authService.getCurrentUserEmail();
+    if (currentUserEmail == null) return;
+
+    await _databaseService.deleteSession(id, currentUserEmail);
     _loadReadingSessions();
 
     if (mounted) {

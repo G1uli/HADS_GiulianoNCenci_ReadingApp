@@ -20,8 +20,10 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final AuthService _authService = AuthService();
   final SettingsService _settingsService = SettingsService();
+  // ignore: unused_field
+  final DatabaseService _databaseService = DatabaseService();
 
-  // Predefined sites that cannot be removed
+  // Predefined sites
   final List<String> _predefinedSites = [
     'https://mangadex.org',
     'https://www.webnovel.com',
@@ -90,7 +92,7 @@ class _HomeScreenState extends State<HomeScreen> {
     await _settingsService.saveCustomSites(_customSites);
   }
 
-  // Navigate to website
+  // Go to website
   void _navigateToWebsite(String url) {
     Navigator.push(
       context,
@@ -98,7 +100,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // Add new website dialog
+  // Add new website
   Future<void> _showAddWebsiteDialog() async {
     TextEditingController urlController = TextEditingController();
     TextEditingController nameController = TextEditingController();
@@ -201,7 +203,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _removeWebsite(String url) {
-    // Check if it's a predefined site (cannot be removed)
+    // Check if it's a predefined site
     if (_predefinedSites.contains(url)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -260,13 +262,14 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  // Check if a website is predefined (cannot be removed)
+  // Check if a website is predefined
   bool _isPredefinedWebsite(String url) {
     return _predefinedSites.contains(url);
   }
 
-  // Helper method to handle opacity without deprecated method
+  // Handle opacity without deprecated method
   Color _withOpacity(Color color, double opacity) {
+
     // ignore: deprecated_member_use
     return color.withOpacity(opacity);
   }
@@ -280,15 +283,15 @@ class _HomeScreenState extends State<HomeScreen> {
   // Get card background color based on settings
   Color _getCardBackgroundColor() {
     final bgColor = _settingsService.backgroundColor;
-    // If background is very dark, use a slightly lighter dark color for cards
+    // Check if color is too dark so it changes card color
     if (bgColor.computeLuminance() < 0.1) {
       return Colors.grey[850]!;
     }
-    // If background is very light, use white for cards
+    // Check if color is too light so it changes card color
     else if (bgColor.computeLuminance() > 0.9) {
       return Colors.white;
     }
-    // Otherwise, use a slightly different shade of the background
+    // If not anything else, use slightly diferent color
     else {
       return _withOpacity(bgColor, 0.95);
     }
@@ -457,7 +460,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
             const Divider(),
 
-            // PDF Converter
+            // File searcher
             ListTile(
               leading: Icon(
                 Icons.folder_open,
@@ -682,6 +685,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
   late final WebViewController _webViewController;
   bool _isLoading = true;
   final DatabaseService _databaseService = DatabaseService();
+  final AuthService _authService = AuthService(); // Add this
 
   @override
   void initState() {
@@ -711,12 +715,16 @@ class _WebViewScreenState extends State<WebViewScreen> {
   }
 
   Future<void> _autoSaveReadingSession(String url) async {
-    final existingSession = await _databaseService.getSessionByUrl(url);
+    final currentUserEmail = await _authService.getCurrentUserEmail(); // Get current user email
+    if (currentUserEmail == null) return;
+
+    final existingSession = await _databaseService.getSessionByUrl(url, currentUserEmail);
     if (existingSession == null) {
       final session = ReadingHistory(
         url: url,
         title: _getPageTitleFromUrl(url),
         timestamp: DateTime.now(),
+        userEmail: currentUserEmail, // Use the actual user email
       );
       await _databaseService.addReadingSession(session);
     }

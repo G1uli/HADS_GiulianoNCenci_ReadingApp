@@ -135,9 +135,14 @@ class AuthService {
     debugPrint('Logged out. Registered accounts preserved.');
   }
 
-  Future<String?> getEmail() async {
+  Future<String?> getCurrentUserEmail() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString('current_email');
+  }
+
+  Future<String?> getCurrentUserName() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('current_name');
   }
 
   Future<bool> hasAccount() async {
@@ -295,6 +300,44 @@ class AuthService {
 
     await prefs.setStringList('account_credentials', updatedCredentials);
     return true;
+  }
+
+  // Method to get the last reset password (to show to user)
+  Future<Map<String, String>?> getLastResetInfo() async {
+    final prefs = await SharedPreferences.getInstance();
+    final password = prefs.getString('last_reset_password');
+    final email = prefs.getString('last_reset_email');
+
+    if (password != null && email != null) {
+      debugPrint('Retrieved last reset info for: $email');
+      return {'email': email, 'password': password};
+    }
+    debugPrint('No previous reset info found');
+    return null;
+  }
+
+  // Add this method to debug account issues
+  Future<void> debugAccounts() async {
+    final prefs = await SharedPreferences.getInstance();
+    final credentialsJson = prefs.getStringList('account_credentials') ?? [];
+    final accountsJson = prefs.getStringList('user_accounts') ?? [];
+
+    debugPrint('=== ACCOUNT DEBUG INFO ===');
+    debugPrint('Credentials count: ${credentialsJson.length}');
+    debugPrint('Accounts count: ${accountsJson.length}');
+
+    for (final credentialJson in credentialsJson) {
+      final credential = _jsonDecode(credentialJson);
+      debugPrint(
+        'Credential - Email: ${credential['email']}, Password: ${credential['password']}',
+      );
+    }
+
+    for (final accountJson in accountsJson) {
+      final account = UserAccount.fromMap(_jsonDecode(accountJson));
+      debugPrint('Account - Email: ${account.email}, Name: ${account.name}');
+    }
+    debugPrint('=== END DEBUG INFO ===');
   }
 
   String _generateTemporaryPassword() {
