@@ -21,9 +21,9 @@ class DatabaseService {
 
     return await sql.openDatabase(
       databasePath,
-      version: 2, // Increment version to update schema
+      version: 2,
       onCreate: _createTables,
-      onUpgrade: _upgradeDatabase, // Add this for migration
+      onUpgrade: _upgradeDatabase,
     );
   }
 
@@ -40,7 +40,7 @@ class DatabaseService {
     ''');
   }
 
-  // Upgrade database to add userEmail column
+  // Email accounts
   Future<void> _upgradeDatabase(
     sql.Database db,
     int oldVersion,
@@ -85,7 +85,7 @@ class DatabaseService {
     return List.generate(maps.length, (i) => ReadingHistory.fromMap(maps[i]));
   }
 
-  // Update a session (e.g., mark as favorite)
+  // Mark as favorite and keep
   Future<int> updateSession(ReadingHistory history) async {
     final db = await database;
     return await db.update(
@@ -120,8 +120,8 @@ class DatabaseService {
     return null;
   }
 
-  // Keep these for backward compatibility or remove them
-  // Get all reading sessions (all users - for backward compatibility)
+  // Old version for backwards compatibility (I.E still use accounts used before)
+  // Get all reading sessions
   Future<List<ReadingHistory>> getAllReadingSessions() async {
     final db = await database;
     final List<Map<String, dynamic>> maps = await db.query(
@@ -131,7 +131,7 @@ class DatabaseService {
     return List.generate(maps.length, (i) => ReadingHistory.fromMap(maps[i]));
   }
 
-  // Get favorite sessions only (all users - for backward compatibility)
+  // Get favorite sessions only
   Future<List<ReadingHistory>> getFavoriteSessions() async {
     final db = await database;
     final List<Map<String, dynamic>> maps = await db.query(
@@ -143,13 +143,13 @@ class DatabaseService {
     return List.generate(maps.length, (i) => ReadingHistory.fromMap(maps[i]));
   }
 
-  // Delete a session (old method - for backward compatibility)
+  // Delete a session
   Future<int> deleteSessionOld(int id) async {
     final db = await database;
     return await db.delete('reading_history', where: 'id = ?', whereArgs: [id]);
   }
 
-  // Check if URL already exists (old method - for backward compatibility)
+  // Check if URL already exists
   Future<ReadingHistory?> getSessionByUrlOld(String url) async {
     final db = await database;
     final List<Map<String, dynamic>> maps = await db.query(

@@ -33,6 +33,7 @@ class _HomeScreenState extends State<HomeScreen> {
   // Combined list of predefined and custom sites
   List<String> _readingSites = [];
   List<String> _customSites = [];
+  bool _isLoading = true;
 
   @override
   void initState() {
@@ -42,13 +43,55 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // Load custom sites from persistent storage
   Future<void> _loadCustomSites() async {
-    final customSites = await _settingsService.getCustomSites();
-    if (mounted) {
-      setState(() {
-        _customSites = customSites;
-        _readingSites = [..._predefinedSites, ..._customSites];
-      });
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final customSites = await _settingsService.getCustomSites();
+      if (mounted) {
+        setState(() {
+          _customSites = customSites;
+          _readingSites = [..._predefinedSites, ..._customSites];
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
+  }
+
+  Widget _buildLoadingScreen() {
+    final backgroundColor = _settingsService.backgroundColor;
+    final textColor = _getTextColorForBackground(backgroundColor);
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Reading App', style: TextStyle(color: textColor)),
+        backgroundColor: backgroundColor,
+        iconTheme: IconThemeData(color: textColor),
+      ),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(textColor),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'Loading your websites...',
+              style: TextStyle(color: textColor.withAlpha((0.7 * 255).round()), 
+    fontSize: 16),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Future<void> _performLogout() async {
@@ -269,7 +312,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // Handle opacity without deprecated method
   Color _withOpacity(Color color, double opacity) {
-
     // ignore: deprecated_member_use
     return color.withOpacity(opacity);
   }
@@ -363,6 +405,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return _buildLoadingScreen();
+    }
+
     final backgroundColor = _settingsService.backgroundColor;
     final textColor = _getTextColorForBackground(backgroundColor);
     // ignore: deprecated_member_use
@@ -374,16 +420,6 @@ class _HomeScreenState extends State<HomeScreen> {
         backgroundColor: backgroundColor,
         iconTheme: IconThemeData(color: textColor),
         actions: [
-          IconButton(
-            icon: Icon(Icons.favorite, color: textColor),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const HistoryScreen()),
-              );
-            },
-            tooltip: 'Favorites',
-          ),
           IconButton(
             icon: Icon(Icons.folder_open, color: textColor),
             onPressed: () {
@@ -575,9 +611,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 });
               },
             ),
-            
+
             const Divider(),
-            
           ],
         ),
       ),
@@ -685,7 +720,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
   late final WebViewController _webViewController;
   bool _isLoading = true;
   final DatabaseService _databaseService = DatabaseService();
-  final AuthService _authService = AuthService(); // Add this
+  final AuthService _authService = AuthService();
 
   @override
   void initState() {
@@ -715,16 +750,19 @@ class _WebViewScreenState extends State<WebViewScreen> {
   }
 
   Future<void> _autoSaveReadingSession(String url) async {
-    final currentUserEmail = await _authService.getCurrentUserEmail(); // Get current user email
+    final currentUserEmail = await _authService.getCurrentUserEmail();
     if (currentUserEmail == null) return;
 
-    final existingSession = await _databaseService.getSessionByUrl(url, currentUserEmail);
+    final existingSession = await _databaseService.getSessionByUrl(
+      url,
+      currentUserEmail,
+    );
     if (existingSession == null) {
       final session = ReadingHistory(
         url: url,
         title: _getPageTitleFromUrl(url),
         timestamp: DateTime.now(),
-        userEmail: currentUserEmail, // Use the actual user email
+        userEmail: currentUserEmail,
       );
       await _databaseService.addReadingSession(session);
     }
