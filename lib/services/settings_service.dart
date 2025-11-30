@@ -1,4 +1,7 @@
+import 'dart:convert';
+import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
+import 'package:reading_app/services/auth_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class SettingsService {
@@ -104,29 +107,69 @@ class SettingsService {
       await prefs.remove(_backgroundColorKey);
       await prefs.remove(_sidebarColorKey);
       await prefs.remove(_fontScaleKey);
-      await prefs.remove(_customSitesKey); // Also remove custom sites
+      await prefs.remove(_customSitesKey);
     } catch (e) {
       // Handle error silently
     }
   }
 
-  // NEW: Save custom websites
-  Future<void> saveCustomSites(List<String> sites) async {
+  Future<void> saveCustomSites(List<dynamic> sites) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setStringList(_customSitesKey, sites);
-    } catch (e) {
+      final userEmail = await AuthService().getCurrentUserEmail();
+      final userSitesKey = '${userEmail}_custom_sites';
 
+      developer.log('Saving sites for user: $userEmail');
+      developer.log('Number of sites: ${sites.length}');
+
+      // Convert sites to JSON strings for storage
+      final sitesData = sites.map((site) {
+        if (site is Map) {
+          return jsonEncode(site);
+        } else {
+          return site.toString();
+        }
+      }).toList();
+
+      developer.log('Sites data to save: $sitesData');
+      await prefs.setStringList(userSitesKey, sitesData);
+      developer.log('Successfully saved sites for user: $userEmail');
+    } catch (e) {
+      developer.log('Error saving custom sites: $e');
       debugPrint('Error saving custom sites: $e');
     }
   }
 
-  // NEW: Get custom websites
-  Future<List<String>> getCustomSites() async {
+  // Replace your existing getCustomSites method with this:
+  Future<List<dynamic>> getCustomSites() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      return prefs.getStringList(_customSitesKey) ?? [];
+      final userEmail = await AuthService().getCurrentUserEmail();
+      final userSitesKey = '${userEmail}_custom_sites';
+
+      developer.log('Loading sites for user: $userEmail');
+      final sitesData = prefs.getStringList(userSitesKey) ?? [];
+      developer.log('Raw sites data loaded: $sitesData');
+
+      // Parse the stored data back to proper format
+      List<dynamic> parsedSites = [];
+      for (var siteData in sitesData) {
+        try {
+          // Try to parse as JSON
+          final decoded = jsonDecode(siteData);
+          parsedSites.add(decoded);
+          developer.log('Successfully parsed site: $decoded');
+        } catch (e) {
+          // If not JSON, treat as simple string (backward compatibility)
+          parsedSites.add(siteData);
+          developer.log('Using raw string for site: $siteData');
+        }
+      }
+
+      developer.log('Final parsed sites count: ${parsedSites.length}');
+      return parsedSites;
     } catch (e) {
+      developer.log('Error loading custom sites: $e');
       debugPrint('Error loading custom sites: $e');
       return [];
     }

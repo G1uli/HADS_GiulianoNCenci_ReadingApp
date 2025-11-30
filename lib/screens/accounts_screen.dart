@@ -43,6 +43,9 @@ class _AccountsScreenState extends State<AccountsScreen> {
             backgroundColor: Colors.green,
           ),
         );
+
+        // Navigate back to home screen
+        Navigator.pop(context);
       }
     } else if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -75,7 +78,9 @@ class _AccountsScreenState extends State<AccountsScreen> {
                 if (success && mounted) {
                   await _loadAccounts();
                   if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
+                    ScaffoldMessenger.of(
+                      BuildContext as BuildContext,
+                    ).showSnackBar(
                       SnackBar(
                         content: Text('Account $email deleted'),
                         backgroundColor: Colors.green,
@@ -83,7 +88,9 @@ class _AccountsScreenState extends State<AccountsScreen> {
                     );
                   }
                 } else if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  ScaffoldMessenger.of(
+                    BuildContext as BuildContext,
+                  ).showSnackBar(
                     const SnackBar(
                       content: Text('Failed to delete account'),
                       backgroundColor: Colors.red,
